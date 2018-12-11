@@ -13,8 +13,8 @@ import plotly.graph_objs as go
 # TO DO:
 # set foreign keys
 # class definition
+# tests
 
-# implement command line interface
 
 
 # set up token authorization for Spotify
@@ -571,8 +571,3 @@ def interactive_prompt():
 
 if __name__=="__main__":
     interactive_prompt()
-
-
-
-
-
