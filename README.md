@@ -1,7 +1,8 @@
 507_final_project
 Morgan Durow (mdurow)
 
-# Data sources used: Spotify API (OAuth) and Wikipedia (web scraping)
+# Data sources
+  Spotify API (OAuth) and Wikipedia (web scraping)<br>
   I used my own personal Spotify data and had to authorize its use. <br>
   See https://developer.spotify.com/documentation/general/guides/authorization-guide/ for details.<br>
   
@@ -33,7 +34,7 @@ Morgan Durow (mdurow)
   get_top_artists()<br>
     This function queries the database and selects the artists that I have the most songs by<br>
 
-# class definition
+# Class definition
   class Song(): accepts API dictionary result and assigns instance variables for track name, id, artist, duration, popularity
 
 # User Guide:
