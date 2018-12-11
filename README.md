@@ -2,8 +2,8 @@
 Morgan Durow (mdurow)
 
 # Data sources used: Spotify API (OAuth) and Wikipedia (web scraping)
-  I used my own personal Spotify data and had to authorize its use. 
-  See https://developer.spotify.com/documentation/general/guides/authorization-guide/ for details.
+  I used my own personal Spotify data and had to authorize its use. <br>
+  See https://developer.spotify.com/documentation/general/guides/authorization-guide/ for details.<br>
   
   For my second data source, I scraped pages of Wikipedia to get basic article information
 
