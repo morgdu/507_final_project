@@ -1,0 +1,21 @@
+Commands available:
+
+artists
+	Description: Lists your top 10 artists by song count in descending order
+
+get info <artist>
+	Description: Select an artist from your top 10 results to learn more information about them
+	Will display the artist's name, a small summary, their years active, a link to their website, and a link to their wikipedia page
+
+plot danceability
+	Description: launches a plotly histogram for danceability audio features of your top 500 songs
+
+plot acousticness
+	Description: launches a plotly histogram for acousticness audio features of your top 500 songs
+
+plot tempo
+	Description: launches a plotly histogram for tempo audio features of your top 500 songs
+
+plot speechiness
+	Description: launches a plotly histogram for speechiness audio features of your top 500 songs
+
