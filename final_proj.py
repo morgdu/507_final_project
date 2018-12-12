@@ -1,5 +1,5 @@
 import sys
-import secrets
+import final_proj_secrets
 import sqlite3
 from bs4 import BeautifulSoup
 import json
@@ -7,23 +7,21 @@ import requests
 import spotipy
 import spotipy.util as util 
 import wikipedia
+import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
 
-# TO DO:
-# set foreign keys
-# class definition
-# tests
+# set up authorization Plotly
+PLOTLY_USERNAME = final_proj_secrets.PLOTLY_USERNAME
+PLOTLY_API_KEY = final_proj_secrets.PLOTLY_API_KEY
+plotly.tools.set_credentials_file(username=PLOTLY_USERNAME, api_key=PLOTLY_API_KEY)
 
-
-
-# set up token authorization for Spotify
-
-'''username = "morgdu"
+# set up authorization for Spotify
+username = final_proj_secrets.S_USERNAME
+S_CLIENT_ID = final_proj_secrets.S_CLIENT_ID
+S_CLIENT_SECRET = final_proj_secrets.S_CLIENT_SECRET
 scope = "user-library-read"
 redirect_uri = "https://accounts.spotify.com/authorize?" #this will become the URL your app landing page
-S_CLIENT_ID = "af8d7ed13079479e80095b152264f65b" 
-S_CLIENT_SECRET = "557e15217340488cb18d90e211186c54"
 
 token = util.prompt_for_user_token(username, scope, client_id=S_CLIENT_ID,client_secret=S_CLIENT_SECRET,redirect_uri=redirect_uri)
 
@@ -31,9 +29,9 @@ if token:
 	print("Token good!")
 	sp = spotipy.Spotify(auth=token)
 else:
-	print("Unable to access")'''
+	print("Unable to access")
 
-# set up cache 
+# set up cache files for data collection
 
 SONGS_CACHE_FNAME = "spotify_cache.json"
 AUDIO_FEATURES_CACHE_FNAME = "audio_features_cache.json"
@@ -82,10 +80,11 @@ except:
 def get_unique_key(url):
   return url 
 
+# song class that takes in a diciontary as input and then assigns instance variables by parsing
 class Song():
 	def __init__(self, song_dict):
 		self.name = song_dict['track']['name']
-		self.artist = song_dict['track']['artists'][0]['name'], songs_py_obj[track]['album']['name']
+		self.artist = song_dict['track']['artists'][0]['name']
 		self.duration = song_dict['track']['duration_ms']
 		self.id = song_dict['track']['id']
 		self.popularity = song_dict['track']['popularity']
@@ -103,6 +102,7 @@ def get_song_ids():
 	track_ids = []
 	for item in results['items']:
 		id = item['track']['id']
+		s = Song(item)
 
 		# append to accumulator list if the song id is not already in the list - ensures not duplicates
 		if id not in track_ids:
@@ -132,8 +132,6 @@ def get_song_ids():
 	
 	return track_ids
 
-#total_songs_lst = get_song_ids()
-
 # function to get audio features given a song's id
 def get_song_info(song_id):
 
@@ -157,13 +155,9 @@ def get_song_info(song_id):
 
 		return audio_features_dict
 
-#print(get_song_info('0mgtiiVldf7Owx7p4MinC2'))
-
 def get_and_cache_all_audio_features(song_id_lst):
 	for song_id in song_id_lst:
 		get_song_info(song_id)
-
-#get_and_cache_all_audio_features(total_songs_lst)
 
 # set up database tables
 
@@ -193,7 +187,7 @@ def create_tables():
 	        CREATE TABLE 'Songs' (
 	        'Id' INTEGER PRIMARY KEY AUTOINCREMENT,
 	        'TrackName' TEXT NOT NULL,
-	        'Artist' TEXT NOT NULL,
+	        'Artist' INTEGER,
 	        'Album' TEXT NOT NULL,
 	        'Duration' INTEGER,
 	        'IdNum' TEXT NOT NULL,
@@ -233,8 +227,7 @@ def create_tables():
 
 	    conn.commit()
 	    conn.close()
-	    
-	    #print("created tables")
+	   
     except:
         print("Could not create tables.")
 
@@ -251,18 +244,18 @@ def populate_songs():
 	    content = f.read()
 	    songs_py_obj = json.loads(content)
 
-	    # populate table and update Bars foreign key columns referencing Countries table
+	    # populate table and update Artist foreign key columns referencing Artists table
 	    for track in list(songs_py_obj.keys()):
-	        cur.execute("INSERT INTO 'Songs' (TrackName, Artist, Album, Duration, IdNum, Popularity) VALUES (?, ?, ?, ?, ?, ?)", (songs_py_obj[track]['name'], songs_py_obj[track]['artists'][0]['name'], songs_py_obj[track]['album']['name'], songs_py_obj[track]['duration_ms'], songs_py_obj[track]['id'], songs_py_obj[track]['popularity']))
-	        #country_id = cur.execute("SELECT id from 'Countries' WHERE EnglishName=?", (country['name'],)).fetchone()[0]
-	        #cur.execute("UPDATE 'Bars' SET CompanyLocationId = ? WHERE CompanyLocationId = ?", (country_id, country['name']))
-	       # cur.execute("UPDATE 'Bars' SET BroadBeanOriginId = ? WHERE BroadBeanOriginId = ?", (country_id, country['name']))
+	    	name = songs_py_obj[track]['artists'][0]['name']
+	    	cur.execute("INSERT INTO 'Songs' (TrackName, Artist, Album, Duration, IdNum, Popularity) VALUES (?, ?, ?, ?, ?, ?)", (songs_py_obj[track]['name'], songs_py_obj[track]['artists'][0]['name'], songs_py_obj[track]['album']['name'], songs_py_obj[track]['duration_ms'], songs_py_obj[track]['id'], songs_py_obj[track]['popularity']))
+
 	    f.close()
 
 	    conn.commit()
 	    conn.close()
 	except:
 		print("Could not populate songs table.")
+
 
 # populate audio features table
 def populate_audio_features():
@@ -278,9 +271,7 @@ def populate_audio_features():
 	    # populate table and update Bars foreign key columns referencing Countries table
 	    for track in list(af_py_obj.keys()):
 	        cur.execute("INSERT INTO 'AudioFeatures' (Danceability, Energy, Key, Loudness, Speechiness, Acousticness, Liveness, Valence, Tempo, IdNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (af_py_obj[track][0]['danceability'], af_py_obj[track][0]['energy'], af_py_obj[track][0]['key'], af_py_obj[track][0]['loudness'], af_py_obj[track][0]['speechiness'], af_py_obj[track][0]['acousticness'], af_py_obj[track][0]['liveness'], af_py_obj[track][0]['valence'], af_py_obj[track][0]['tempo'], af_py_obj[track][0]['id']))
-	        #song_id = cur.execute("SELECT Id from 'Songs' WHERE IdNum=?", (track['IdNumber'],)).fetchone()[0]
-	        #cur.execute("UPDATE 'AudioFeatures' SET Id = ? WHERE IdNum = ?", (song_id, track['IdNumber']))
-	       # cur.execute("UPDATE 'Bars' SET BroadBeanOriginId = ? WHERE BroadBeanOriginId = ?", (country_id, country['name']))
+
 	    f.close()
 
 	    conn.commit()
@@ -426,18 +417,47 @@ def populate_artist():
 	for artist in artist_names:
 		artist_dict = scrape_wiki(artist)
 		#print(artist_dict)
-		cur.execute("INSERT INTO 'Artists' (Name, YearsActive, Website, WikiURL, Summary) VALUES (?, ?, ?, ?, ?)", (artist_dict['title'], artist_dict['years_active'], artist_dict['website'], artist_dict['wiki_url'], artist_dict['summary']))
+		cur.execute("INSERT INTO 'Artists' (Name, YearsActive, Website, WikiURL, Summary) VALUES (?, ?, ?, ?, ?)", (artist, artist_dict['years_active'], artist_dict['website'], artist_dict['wiki_url'], artist_dict['summary']))
 	f.close()
 
 	conn.commit()
 	conn.close()
 
+def update_songs_foreign_key():
+	try:
+	    conn = sqlite3.connect(DBNAME)
+	    cur = conn.cursor()
+
+	    # open countries file and make it a python object
+	    f = open(SONGS_CACHE_FNAME)
+	    content = f.read()
+	    songs_py_obj = json.loads(content)
+
+	    # populate table and update Artist foreign key columns referencing Artists table
+	    for track in list(songs_py_obj.keys()):
+	    	name = songs_py_obj[track]['artists'][0]['name']
+	    	print(name)
+	    	try:
+	    		artist_id = cur.execute("SELECT id FROM 'Artists' WHERE Name=?", (name,)).fetchone()[0]
+	    		print(artist_id)
+	    		statement = "UPDATE Songs SET Artist = ? WHERE Artist = ?"
+	    		cur.execute(statement,(artist_id, name))	
+	    	except:
+	    		continue    	
+	    f.close()
+
+	    conn.commit()
+	    conn.close()
+	except:
+		print("Could not update songs table with foreign keys.")
 
 #create_tables()
 #populate_songs()
 #populate_audio_features()
 #populate_artist()
+#update_songs_foreign_key()
 
+# set up cache to store aggregate data
 AGGREGATES_CACHE_FNAME = 'aggregates.json'
 
 try:
@@ -448,17 +468,8 @@ try:
 except:
     AGGREGATES_CACHE_DICTION = {}
 
+# function that takes a feature as input and collects the # value of that feature for all 500 songs
 def get_aggregates(feature):
-	'''# open countries file and make it a python object
-	f = open(AUDIO_FEATURES_CACHE_FNAME)
-	content = f.read()
-	af_py_obj = json.loads(content)
-
-	aggregate = []
-	for track in list(af_py_obj.keys()):
-		aggregate.append(af_py_obj[track][0][feature])
-	return aggregate'''
-
 	if feature in list(AGGREGATES_CACHE_DICTION.keys()):
 		return AGGREGATES_CACHE_DICTION[feature]
 	else:
@@ -485,18 +496,20 @@ def get_aggregates(feature):
 #t = get_aggregates('tempo')
 #a = get_aggregates('acousticness')
 
+# gets top 15 artists by song count
 def get_top_artists():
 	conn = sqlite3.connect(DBNAME)
 	cur = conn.cursor()
-	statement = "SELECT * FROM Songs GROUP BY Artist HAVING COUNT(*) > 1 ORDER BY COUNT(*) DESC LIMIT 15"
+	statement = "SELECT Artists.Name FROM Artists JOIN Songs ON Artists.Id = Songs.Artist GROUP BY Songs.Artist HAVING COUNT(*) > 1 ORDER BY COUNT (*) DESC LIMIT 15"
 	results = cur.execute(statement)
 	results = cur.fetchall()
 
 	artists = []
 	for r in results:
-		artists.append(r[2])
+		artists.append(r[0])
 	return artists
 
+# display artist info
 def get_artist_info(artist_name):
 	artist_dict = scrape_wiki(artist_name)
 
@@ -519,8 +532,10 @@ def plot(feature):
 
 # interaction command prompt
 def interactive_prompt():
-	print("Enter a command or enter 'help' to see options")
-	help_text = "help"
+	print("Enter a command or enter 'help' to see options \n")
+	help_f = open('help.txt')
+	help_text = help_f.read()
+	help_f.close()
 
 	# get user response and continue looping
 	response = ''
@@ -554,6 +569,7 @@ def interactive_prompt():
 			artist = artists[choice - 1]
 			get_artist_info(artist)
 
+		# plots
 		elif "danceability" in response:
 			print("Launching your data in plotly...")
 			plot("danceability")
@@ -566,6 +582,7 @@ def interactive_prompt():
 		elif "speechiness" in response:
 			print("Launching your data in plotly...")
 			plot("speechiness")
+		# error handling
 		else:
 			print("Command not recognized: " + response)
 
