@@ -1,4 +1,3 @@
-import sys
 import final_proj_secrets
 import sqlite3
 from bs4 import BeautifulSoup
@@ -451,11 +450,12 @@ def update_songs_foreign_key():
 	except:
 		print("Could not update songs table with foreign keys.")
 
-#create_tables()
-#populate_songs()
-#populate_audio_features()
-#populate_artist()
-#update_songs_foreign_key()
+# execute functions for database
+create_tables()
+populate_songs()
+populate_audio_features()
+populate_artist()
+update_songs_foreign_key()
 
 # set up cache to store aggregate data
 AGGREGATES_CACHE_FNAME = 'aggregates.json'
